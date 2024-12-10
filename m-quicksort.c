@@ -27,17 +27,16 @@ pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t create_task_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int done = 0;
-
 int active_threads = 0;
-#define MAX_THREADS 32
-#define THRESHOLD 5000
-
-
-
-
-// SortTask task_queue[20000];
 queue_t task_queue;
 int task_count = 0;
+
+#define MAX_THREADS 32
+#define THRESHOLD 50000
+
+
+
+
 
 pthread_t thread_arr[MAX_THREADS]; 
 
@@ -50,8 +49,9 @@ int main()
 
     // ========================================================
 
+    clock_t start = clock();
 
-    unsigned long int N = 1000000;
+    unsigned long int N = 2000000;
     int arr[N];
     for (int i = 0; i < N; i++) {
         arr[i] = rand() % 10000; // Random numbers between 0 and 9999
@@ -96,11 +96,14 @@ int main()
         }
     }
 
+    clock_t stop = clock();
+
+
 
     // Stack input
     printf("Multiple threads\n");
     // print_arr(arr, size - 1);
-
+    printf("%6.3f seconds\n", ((double)stop - start)/CLOCKS_PER_SEC);
     deallocate(&task_queue);
     
     // =========================================
@@ -209,14 +212,14 @@ void* run_thread()
         //     task_queue[i] = task_queue[i + 1];
         // }
         --task_count;
-        ++active_threads;
+        // ++active_threads;
         pthread_mutex_unlock(&thread_lock);
 
         quick_sort_t(&task);
 
         pthread_mutex_lock(&thread_lock);
 
-        --active_threads;
+        // --active_threads;
 
         if (task_count == 0 && active_threads == 0)
         {
