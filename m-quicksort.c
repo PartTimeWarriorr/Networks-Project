@@ -1,23 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <pthread.h>
-#include <limits.h>
-#include "queue.c"
+#include "m-quicksort.h"
 
 
-void swap(int arr[], int ind_1, int ind_2);
-void print_arr(int arr[], unsigned long size);
-void quick_sort(int arr[], int low, int high);
-void quick_sort_t(void * params);
-int partition(int arr[], int low, int high);
-int get_random_index(int low, int high);
-void create_sort_task(SortTask_t task);
-void* run_thread();
-
-#define MAX_THREADS 100
-
-// global variables ew..
 pthread_mutex_t thread_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
 
@@ -26,9 +9,7 @@ int active_threads = 0;
 int task_count = 0;
 queue_t task_queue;
 
-
 pthread_t thread_pool[MAX_THREADS]; 
-
 
 void perform_alg(int thread_count, int num_count, int* arr, char* buffer)
 {

@@ -1,7 +1,5 @@
-a
-b
-c
-*.out
+fun.o
+client.out
+*.o
 *.exe
-tests.c
-utils
+*.out

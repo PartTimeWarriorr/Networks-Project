@@ -1,11 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include "utils.h"
 
-#define MAX_INT_LEN 10
-
-int parse_args(char* input, int* thread_count, int* num_count);
 
 int parse_args(char* input, int* thread_count, int* num_count)
 {   

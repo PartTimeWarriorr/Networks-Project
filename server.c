@@ -1,15 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
+#include "server.h"
 
-#include "utils.c"
-#include "m-quicksort.c"
-
-#define BUFF_SIZE 4000
 
 // server.c
 int main()
