@@ -6,11 +6,11 @@ typedef struct SortTask
     int* arr;
     int low;
     int high;
-} SortTask;
+} SortTask_t;
 
 typedef struct node 
 {
-    SortTask val;
+    SortTask_t val;
     struct node *next;
 } node_t;
 
@@ -20,9 +20,7 @@ typedef struct queue
     node_t* back;
 } queue_t;
 
-
-
-void push(queue_t* q, SortTask val)
+void push(queue_t* q, SortTask_t  val)
 {
     node_t* new_node = malloc(sizeof(node_t));
 
@@ -55,7 +53,7 @@ void print_queue(queue_t* q)
 
 }
 
-SortTask pop(queue_t* q)
+SortTask_t pop(queue_t* q)
 {
     if (q->front == NULL)
     {
@@ -64,7 +62,7 @@ SortTask pop(queue_t* q)
     }
 
     node_t* temp = q->front;
-    SortTask val = temp->val;
+    SortTask_t val = temp->val;
 
     q->front = q->front->next;
 
@@ -91,24 +89,3 @@ void deallocate(queue_t* q)
     q->front = NULL;
     q->back = NULL;
 }
-
-
-// int main()
-// {
-//     queue_t q = {
-//         NULL, NULL
-//     };
-
-//     SortTask t1 = {NULL, 0, 4};
-//     SortTask t2 = {NULL, 1, 3};
-//     SortTask t3 = {NULL, 24, 0};
-
-//     push(&q, t1);
-//     push(&q, t2);
-//     push(&q, t3);
-//     SortTask t4 = pop(&q);
-
-//     print_queue(&q);
-//     printf("%d, %d\n", t4.low, t4.high);
-
-// }

@@ -5,51 +5,98 @@
 
 #define MAX_INT_LEN 10
 
-void parse_args(char* input, int* thread_count, int* num_count);
+int parse_args(char* input, int* thread_count, int* num_count);
 
-int main()
-{
+// int main()
+// {
+
+    // received input from client
     
-    char input_vars[] = "sort 32 4 1 10 5 44";
-    int thread_count = 0;
-    int num_count = 0;
+    // char input_vars[] = "sort 32 4 1 10 5 44";
+    // char test_vars[1024] = "sort 1";
+    // int thread_count = 0;
+    // int num_count = 0;
 
-    consume(input_vars, "sort");
-
-    char input_copy[256];
-    strncpy(input_copy, input_vars, strlen(input_vars));
-    input_copy[strlen(input_vars)] = '\0';
+    // printf("%d",atoi("-1"));
     
-    parse_args(input_copy, &thread_count, &num_count);
 
-    int arr[num_count];
+    // consume(test_vars, "sort");
+    // printf(test_vars);
 
-    parse_input(input_vars, arr);
-    // printf("%d\n", thread_count);
-    // printf("%d\n", num_count);
-    // print_arr(arr, num_count);
+    // char input_copy[256];
+    // strncpy(input_copy, input_vars, strlen(input_vars));
+    // input_copy[strlen(input_vars)] = '\0';
+    
+    // parse_args(input_copy, &thread_count, &num_count);
 
-    char buff[1024];
-    parse_output_array(arr, num_count, buff);
-    printf("%s\n", buff);
+    // int arr[num_count];
 
+    // parse_input_array(input_vars, arr);
 
+    // quicksort array (possibly copy it and then sort singlethreaded as well)
+    // return information about sorting times
 
-}
+    // char buff[1024];
+    // parse_output_array(arr, num_count, buff);
+    // printf("%s\n", buff);
 
-void parse_args(char* input, int* thread_count, int* num_count)
+    // send sorted array back to client
+    // as well as sorting times with the different algo's
+
+// }
+
+int parse_args(char* input, int* thread_count, int* num_count)
 {   
+
     char* token = strtok(input, " ");
-    *thread_count = atoi(token);
-    token = strtok(NULL, " ");
+
+    for ( int i = 0; i < strlen(token); ++i)
+    {
+        if (!isdigit(token[i]))
+        {
+            perror("Input is not a number");
+            return -1;
+        }
+    }
+    *thread_count = atoi(token); // ???
+
+    if(*thread_count == 0)
+    {
+        printf("Input should be a positive number\n");
+        return -1;
+    }
+
+// ???
+    if ( (token = strtok(NULL, " ")) == 0 )
+    {
+        printf("Input string is empty\n");
+        return -1;
+    }
+    
+    for ( int i = 0; i < strlen(token); ++i)
+    {
+        if (!isdigit(token[i]))
+        {
+            perror("Input is not a number");
+            return -1;
+        }
+    }
     *num_count = atoi(token);
+
+    if(*num_count == 0)
+    {
+        printf("Input should be a positive number\n");
+        return -1;
+    }
+
+    return 0;
 
 }
 
 
 void parse_output_array(int arr[], int num_count, char* buf)
 {
-    strcpy(buf, "");
+    strcat(buf, "Sorted array: ");
 
     for ( int i = 0; i < num_count; ++i )
     {
@@ -57,20 +104,12 @@ void parse_output_array(int arr[], int num_count, char* buf)
         sprintf(num, "%d ", arr[i]);
         strcat(buf, num);
     }
+
+    strcat(buf, "\n");
 }
 
 
-void print_arr(int arr[], unsigned long size)
-{
-    for (int i = 0; i < size; ++i)
-    {
-        printf("%d ", arr[i]);
-    }
-    printf("\n");
-}
-
-// void parse_input(char* input, int* thread_count, int* num_count, int arr[])
-void parse_input(char* input, int arr[])
+int parse_input_array(char* input, int arr[])
 {
     char* token = strtok(input, " ");
     token = strtok(NULL, " ");
@@ -78,13 +117,13 @@ void parse_input(char* input, int arr[])
     int i = 0;
 
 
-    // printf("Thread count: %d, Num count: %d\n", *thread_count, *num_count);
+    // TODO make negative numbers valid
     while ( token != NULL )
     {
         if (strlen(token) >= MAX_INT_LEN + 1)
         {
             perror("Input number is too big");
-            exit(EXIT_FAILURE);
+            return -1;
 
         }
 
@@ -93,19 +132,19 @@ void parse_input(char* input, int arr[])
             if (!isdigit(token[i]))
             {
                 perror("Input is not a number");
-                exit(EXIT_FAILURE);
+                return -1;
             }
         }
-        char* buf[256];
-        strcpy(buf, token);
-        arr[i++] = atoi(buf);
+        arr[i++] = atoi(token);
         token = strtok(NULL, " ");
     }
+
+    return 0;
 
 }
 
 
-void consume(char** input, const char** keyword)
+int consume(char** input, const char** keyword)
 {
     if ( strncmp(input, keyword, strlen(keyword)) == 0 )
     {
@@ -115,9 +154,8 @@ void consume(char** input, const char** keyword)
     else
     {
         printf("Expected keyword: %s\n", keyword);
-        exit(EXIT_FAILURE);
+        return -1;
     }
+
+    return 0;
 }
-
-
-// Input: sort[' ']?<thread-count> <num-count> <separated-nums>

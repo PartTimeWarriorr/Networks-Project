@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-#define BUFF_SIZE 256
+#define BUFF_SIZE 1024
 
 // client.c
 int main()
@@ -14,7 +14,6 @@ int main()
 
     const char* peer_ip = "127.0.0.1";
     int peer_port = 9800;
-    // const char* msg = "I am a UDP datagram";
 
     struct sockaddr_in peer_addr = {
         .sin_family = AF_INET,
@@ -36,8 +35,9 @@ int main()
     }
 
     char msg[BUFF_SIZE];
-    int bytes_sent;
-
+    char recv_buffer[BUFF_SIZE];
+    int bytes_sent, bytes_received;
+    socklen_t peer_addr_len = sizeof(peer_addr);
 
     while(1)
     {
@@ -55,12 +55,23 @@ int main()
             exit(EXIT_FAILURE);
         }
 
-        printf("Sent: \"%s\", to: %s:%d\n", msg, peer_ip, peer_port);
+
+        if ( (bytes_received = recvfrom(udp_sock, recv_buffer, BUFF_SIZE - 1, 0, (struct sockaddr*)&peer_addr, &peer_addr_len) ) == -1 )
+        {
+            perror("Couldn't recv message");
+            close(udp_sock);
+            exit(EXIT_FAILURE);
+        }
+
+        recv_buffer[bytes_received] = '\0';
+        printf("========================================================\nServer: %s", recv_buffer);
+        printf("========================================================\n");
+
+
+        recv_buffer[0] = '\0';
+        msg[0] = '\0';
         
     }
-
-
-
 
     close(udp_sock);
 

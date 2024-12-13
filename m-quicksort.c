@@ -12,10 +12,10 @@ void quick_sort(int arr[], int low, int high);
 void quick_sort_t(void * params);
 int partition(int arr[], int low, int high);
 int get_random_index(int low, int high);
-void create_sort_task(SortTask task);
+void create_sort_task(SortTask_t task);
 void* run_thread();
 
-#define MAX_THREADS 32
+#define MAX_THREADS 100
 #define THRESHOLD 50000
 
 pthread_mutex_t thread_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -30,26 +30,12 @@ int task_count = 0;
 pthread_t thread_arr[MAX_THREADS]; 
 
 
-
-
-
-int main()
+void perform(int thread_count, int num_count, int* arr, char* buffer)
 {
-
-    // ========================================================
 
     clock_t start = clock();
 
-    unsigned long int N = 2000000;
-    int arr[N];
-    for (int i = 0; i < N; i++) {
-        arr[i] = rand() % 10000; // Random numbers between 0 and 9999
-    }
-
-    int size = sizeof(arr) / sizeof(int);
-    // printf("%d\n", size);
-
-    for (int i = 0; i < MAX_THREADS; ++i)
+    for (int i = 0; i < thread_count; ++i)
     {
         if(pthread_create(&thread_arr[i], NULL, &run_thread, NULL) != 0)
         {
@@ -58,23 +44,21 @@ int main()
         }
     }
 
+    quick_sort(arr, 0, num_count - 1);
 
-    quick_sort(arr, 0, size - 1);
-
-    
     pthread_mutex_lock(&thread_lock);
     while(task_count > 0 || active_threads > 0)
     {
-        pthread_cond_wait(&cond_var, &thread_lock);
+        pthread_mutex_unlock(&thread_lock);
+        pthread_mutex_lock(&thread_lock);
+
+        // pthread_cond_wait(&cond_var, &thread_lock);
     }
     done = 1;
     pthread_cond_broadcast(&cond_var);
     pthread_mutex_unlock(&thread_lock);
 
-
-
-
-    for (int i = 0; i < MAX_THREADS; ++i)
+    for (int i = 0; i < thread_count; ++i)
     {
         if(pthread_join(thread_arr[i], NULL) != 0)
         {
@@ -85,20 +69,17 @@ int main()
 
     clock_t stop = clock();
 
-
-
-    // Stack input
-    printf("Multiple threads\n");
-    print_arr(arr, size - 1);
-    printf("%6.3f seconds\n", ((double)stop - start)/CLOCKS_PER_SEC);
     deallocate(&task_queue);
-    
-    // =========================================
 
+    sprintf(buffer, "Multithreaded quicksort ran for: %6.3f seconds\n        On %d threads\n", ((double)stop - start)/CLOCKS_PER_SEC, thread_count);
+    
 
 }
 
-void create_sort_task(SortTask task)
+
+
+
+void create_sort_task(SortTask_t task)
 {
     pthread_mutex_lock(&thread_lock);
     // !
@@ -114,7 +95,7 @@ void* run_thread()
 
     while(1)
     {
-        SortTask task;
+        SortTask_t  task;
 
         pthread_mutex_lock(&thread_lock);
         while (task_count == 0 && !done)
@@ -131,30 +112,29 @@ void* run_thread()
         task = pop(&task_queue);
 
         --task_count;
-        // ++active_threads;
+        // ???
+        ++active_threads;
+        // ???
         pthread_mutex_unlock(&thread_lock);
 
         quick_sort_t(&task);
 
-        // pthread_mutex_lock(&thread_lock);
+        // ???
+        pthread_mutex_lock(&thread_lock);
+        --active_threads;
 
-        // --active_threads;
-
-        // if (task_count == 0 && active_threads == 0)
-        // {
-        //     pthread_cond_signal(&cond_var);
-        // }
-
-        // pthread_mutex_unlock(&thread_lock);        
+        if (task_count == 0 && active_threads == 0)
+        {
+            pthread_cond_signal(&cond_var);
+        }
+        pthread_mutex_unlock(&thread_lock);        
+        // ???
     }
 
 }
 
 int get_random_index(int low, int high)
 {
-    // int seed = time(NULL);
-
-    // return rand_r(&seed) % (high - low + 1) + low;
     return rand() % (high - low + 1) + low;
 }
 
@@ -183,22 +163,19 @@ int partition(int arr[], int low, int high)
 
 void quick_sort_t(void* params)
 {
-    SortTask* task_params = (SortTask *) params;
+    SortTask_t  * task_params = (SortTask_t   *) params;
 
     int* arr = task_params->arr;
     int low = task_params->low;
     int high = task_params->high;
 
-    // print_arr(arr, high);
-    // printf("low: %d, high: %d\n", low, high);
-
-
     if (low < high)
     {
+
         int part_index = partition(arr, low, high); 
 
-        SortTask task_params_left = {arr, low, part_index - 1};
-        SortTask task_params_right = {arr, part_index + 1, high};
+        SortTask_t task_params_left = {arr, low, part_index - 1};
+        SortTask_t task_params_right = {arr, part_index + 1, high};
 
         if (high - low < THRESHOLD)
         {
@@ -219,7 +196,7 @@ void quick_sort_t(void* params)
 
 void quick_sort(int arr[], int low, int high)
 {
-    SortTask params = {arr, low, high};
+    SortTask_t params = {arr, low, high};
 
     quick_sort_t(&params);
 }
