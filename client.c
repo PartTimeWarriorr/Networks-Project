@@ -6,12 +6,11 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-#define BUFF_SIZE 1024
+#define BUFF_SIZE 4000
 
 // client.c
 int main()
 {
-
     const char* peer_ip = "127.0.0.1";
     int peer_port = 9800;
 
@@ -41,13 +40,16 @@ int main()
 
     while(1)
     {
+        // Await input from user
         printf("> ");
         fgets(msg, sizeof(msg), stdin);
         msg[strcspn(msg, "\n")] = 0; // gets rid of trailing newline
 
+        // If input == exit: exit client program 
         if ( strncmp(msg, "exit", 4) == 0)
             break;
 
+        // Send input to server
         if ( (bytes_sent = sendto(udp_sock, msg, strlen(msg) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr))) == -1 )
         {
             perror("Failed to send message");
@@ -55,16 +57,17 @@ int main()
             exit(EXIT_FAILURE);
         }
 
-
-        if ( (bytes_received = recvfrom(udp_sock, recv_buffer, BUFF_SIZE - 1, 0, (struct sockaddr*)&peer_addr, &peer_addr_len) ) == -1 )
+        // Receive server output
+        if ( (bytes_received = recvfrom(udp_sock, recv_buffer, BUFF_SIZE, 0, (struct sockaddr*)&peer_addr, &peer_addr_len) ) == -1 )
         {
             perror("Couldn't recv message");
             close(udp_sock);
             exit(EXIT_FAILURE);
         }
 
+        // Format received output
         recv_buffer[bytes_received] = '\0';
-        printf("========================================================\nServer: %s", recv_buffer);
+        printf("\n========================================================\nServer: %s", recv_buffer);
         printf("========================================================\n");
 
 

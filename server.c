@@ -9,17 +9,14 @@
 #include "utils.c"
 #include "m-quicksort.c"
 
-#define BUFF_SIZE 1024
-
-// inet_ntoa() converts IP to readable format
-// ntohs() converts the port to host byte order
+#define BUFF_SIZE 4000
 
 // server.c
 int main()
 {
 
     int my_port = 9800;
-    int udp_rec_sock;
+    int udp_sock;
 
     struct sockaddr_in peer_addr;
     struct sockaddr_in my_addr = {
@@ -28,21 +25,18 @@ int main()
         .sin_port = htons(my_port),
     };
 
+    udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-    udp_rec_sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if ( udp_rec_sock <= 0 )
+    if ( udp_sock <= 0 )
     {
         perror("Couldn't create socket");
         exit(EXIT_FAILURE);
     }
 
 
-    int result = bind( udp_rec_sock, (struct sockaddr*)&my_addr, sizeof(my_addr));
-
+    int result = bind( udp_sock , (struct sockaddr*)&my_addr, sizeof(my_addr));
     if ( result != 0)
     {
-        printf("return value: %d\n", result);
         perror("Could not bind socket to address.");
         exit(EXIT_FAILURE);
     }
@@ -56,13 +50,15 @@ int main()
     while(1)
     {
 
-        if ( (bytes_received = recvfrom(udp_rec_sock, buffer, BUFF_SIZE, 0, (struct sockaddr*)&peer_addr, &peer_addr_len) ) == -1 )
+        // Receive message from client
+        if ( (bytes_received = recvfrom(udp_sock, buffer, BUFF_SIZE, 0, (struct sockaddr*)&peer_addr, &peer_addr_len) ) == -1 )
         {
             perror("Couldn't recv message");
-            close(udp_rec_sock);
+            close(udp_sock);
             exit(EXIT_FAILURE);
         }
 
+        // Check for sort command
         if ( consume(buffer, "sort") == -1 )
         {
             strcpy(response, "Usage: sort <thread_count> <array_size> <array_elements>\n");
@@ -72,10 +68,11 @@ int main()
             parse_and_quicksort(buffer, response);
         }
 
-        if ( (bytes_sent = sendto(udp_rec_sock, response, strlen(response) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) ) == -1 )
+        // Send response to client
+        if ( (bytes_sent = sendto(udp_sock, response, strlen(response) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) ) == -1 )
         {
             perror("Failed to send message");
-            close(udp_rec_sock);
+            close(udp_sock);
             exit(EXIT_FAILURE);
         }
 
@@ -91,7 +88,7 @@ int main()
         
     }
 
-    close(udp_rec_sock);
+    close(udp_sock);
 }
 
 
@@ -101,9 +98,10 @@ void parse_and_quicksort(char* args, char* response)
 {
     int thread_count = 0;
     int num_count = 0;
-    char args_copy[1024];
+    char args_copy[2048];
     strcpy(args_copy, args);
 
+    // Parses thread_count and num_count 
     if ( (parse_args(args_copy, &thread_count, &num_count)) == -1 )
     {
         printf("Failed to parse arguments\n");
@@ -111,8 +109,10 @@ void parse_and_quicksort(char* args, char* response)
         return;
     }
 
+    // Init array...
     int arr[num_count];
 
+    // Parses input array
     if ( (parse_input_array(args, arr)) == -1 )
     {
         printf("Failed to parse array\n");
@@ -120,8 +120,10 @@ void parse_and_quicksort(char* args, char* response)
         return;
     }
 
-    perform(thread_count, num_count, arr, response);
+    // Executes single- and multi-threaded quicksort with the input parameters
+    perform_alg(thread_count, num_count, arr, response);
 
+    // Parses output array and stores it in response buffer
     parse_output_array(arr, num_count, response);
 
 }
