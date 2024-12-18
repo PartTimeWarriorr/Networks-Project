@@ -1,4 +1,6 @@
 
+all: server.out client.out
+
 server.out: queue.o m-quicksort.o utils.o server.o
 	gcc -o server.out queue.o m-quicksort.o utils.o server.o 
 
@@ -14,5 +16,11 @@ m-quicksort.o: m-quicksort.c m-quicksort.h queue.h
 utils.o: utils.c utils.h 
 	gcc -c utils.c
 
+client.out: client.o 
+	gcc -o client.out client.o 
+
+client.o: client.c
+	gcc -c client.c
+
 clean:
-	rm *.o server.out
+	rm *.o server.out client.out

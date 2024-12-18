@@ -47,7 +47,17 @@ int main()
 
         // If input == exit: exit client program 
         if ( strncmp(msg, "exit", 4) == 0)
+        {
+            if ( (bytes_sent = sendto(udp_sock, msg, strlen(msg) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr))) == -1 )
+            {
+                perror("Failed to send message");
+                close(udp_sock);
+                exit(EXIT_FAILURE);
+            }
+
             break;
+
+        }
 
         // Send input to server
         if ( (bytes_sent = sendto(udp_sock, msg, strlen(msg) + 1, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr))) == -1 )

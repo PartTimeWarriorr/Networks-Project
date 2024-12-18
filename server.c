@@ -48,8 +48,11 @@ int main()
             exit(EXIT_FAILURE);
         }
 
-        // Check for sort command
-        if ( consume(buffer, "sort") == -1 )
+        if ( strncmp(buffer, "exit", 4) == 0 ) // Check for exit command
+        {
+            break;
+        }
+        else if ( consume(buffer, "sort") == -1 ) // Check for sort command 
         {
             strcpy(response, "Usage: sort <thread_count> <array_size> <array_elements>\n");
         }
