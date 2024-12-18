@@ -1,91 +1,126 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <pthread.h>
-#include <limits.h>
+#include "m-quicksort.h"
 
-void swap(int arr[], int ind_1, int ind_2);
-void print_arr(int arr[], unsigned long size);
-void quick_sort(int arr[], int low, int high);
-void quick_sort_t(void * params);
-int partition(int arr[], int low, int high);
-int get_random_index(int low, int high);
 
 pthread_mutex_t thread_lock = PTHREAD_MUTEX_INITIALIZER;
-int active = 0;
-#define MAX_THREADS 16
+pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
 
-struct ThreadParams
+int done = 0;
+int active_threads = 0;
+int task_count = 0;
+queue_t task_queue;
+
+pthread_t thread_pool[MAX_THREADS]; 
+
+void perform_alg(int thread_count, int num_count, int* arr, char* buffer)
 {
-    int* arr;
-    int low;
-    int high;
-};
-
-
-int main()
-{
-    // int arr_big[] = {111,111,11,1,1,11,1,1,1,1,1,1,1,1,1,1,1,1,1,111111,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,11,111,1,1,1,1,11,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,111,1,1,1,1,1,1,1,1,1,11,11,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1,1,1,1,11,1,1,1,1,1,1111111,111,11,111,11,11,11,11,11111111111111111111,11,11,11,11,11,11,111,1111111111111111111111111,1111111111111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,11,11,111,11,11,11,11,111,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,111,11,11,11,11,11,11,11,1,1,1,1,1,1,1};
-    // int size_big = sizeof(arr_big) / sizeof(int);
-    // quick_sort(arr_big, 0, size_big - 1);
-    // print_arr(arr_big, size_big);
-
-    unsigned long int N = 1000000;
-    int arr[N];
-    for (int i = 0; i < N; i++) {
-        arr[i] = rand() % 10000; // Random numbers between 0 and 9999
+    int arr_2[num_count];
+    for(int i = 0; i < num_count; ++i)
+    {
+        arr_2[i] = arr[i];
     }
-    quick_sort(arr, 0, N - 1);
-    // print_arr(arr, N - 1);
- 
 
-    // tests?
-
-    // 1.
-    // int seed = time(NULL);
-
-    // for (int i = 0; i < 10; i++)
-    // {
-    //     int rd = rand_r(&seed) % (10 - 1 + 1) + 1;
-    //     printf("%d\n", rd);
-    // }
-
-    // 2.
-    // int arr[] = {1,2,3};
-    // int size = sizeof(arr) / sizeof(int);
-    // printf("%d\n", size);
-
-    // 3.
-    // int arr_2[] = {2,4,5,6};
-    // int size_2 = sizeof(arr_2) / sizeof(int);
-    // swap(arr_2, 0, 2);
-    // print_arr(arr_2, size_2);
+    clock_t start = clock();
 
 
-    // 4. 
-    // int arr_3[] = {10, 8, 7, 3, 11, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 4, 5, 3, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 3, 11, 4, 5, 11, 4, 5};
-    // int size_3 = sizeof(arr_3) / sizeof(int);    
-    // quick_sort(arr_3, 0, size_3 - 1);
-    // print_arr(arr_3, size_3);
-    // printf("%d\n", active);
-    
-    // quick_sort(arr_3, 0, size_3 - 1);
-    // print_arr(arr_3, size_3);
+    // Multi-thread quicksort
+    for (int i = 0; i < thread_count; ++i)
+    {
+        if(pthread_create(&thread_pool[i], NULL, &run_thread, NULL) != 0)
+        {
+            perror("Thread not created\n");
+            return;
+        }
+    }
 
-    // 5.
-    // int arr_4[] = {4,3,5,2,1,7};
-    // int size_4 = sizeof(arr_4) / sizeof(int);
-    // quick_sort(arr_4, 0, size_4 - 1);
-    // printf("%d\n", active);
-    // print_arr(arr_4, size_4);
+    quick_sort(arr, 0, num_count - 1);
+
+    // Main thread constantly checks if there are any active threads or tasks
+    pthread_mutex_lock(&thread_lock);
+    while(task_count > 0 || active_threads > 0)
+    {
+        // ?
+        pthread_mutex_unlock(&thread_lock);
+        pthread_mutex_lock(&thread_lock);
+    }
+    done = 1;
+    pthread_cond_broadcast(&cond_var);
+    pthread_mutex_unlock(&thread_lock);
+
+    for (int i = 0; i < thread_count; ++i)
+    {
+        if(pthread_join(thread_pool[i], NULL) != 0)
+        {
+            perror("Thread not joined\n");
+            return;
+        }
+    }
+
+    clock_t stop = clock();
+
+    deallocate(&task_queue);
+
+
+    clock_t start_2 = clock();
+
+    // Single-thread quicksort
+    quick_sort_s(arr_2, 0, num_count - 1);
+
+
+    clock_t stop_2 = clock();
+
+    sprintf(buffer, "\nMultithreaded quicksort ran for: %6.3f seconds\n        On %d threads\nSinglethreaded quicksort ran for: %6.3f seconds\n        On 1 thread\n", ((double)stop - start)/CLOCKS_PER_SEC, thread_count, ((double)stop_2 - start_2)/CLOCKS_PER_SEC);
+
+}
+
+
+void create_sort_task(SortTask_t task)
+{
+    pthread_mutex_lock(&thread_lock);
+    push(&task_queue, task);
+    ++task_count;
+    pthread_mutex_unlock(&thread_lock);
+
+    pthread_cond_signal(&cond_var);
+}
+
+
+// Worker thread(s) function
+void* run_thread()
+{
+
+    while(1)
+    {
+        SortTask_t  task;
+
+        pthread_mutex_lock(&thread_lock);
+        while (task_count == 0 && !done)
+        {
+            pthread_cond_wait(&cond_var, &thread_lock);
+        }
+
+        if(done && task_count == 0)
+        {
+            pthread_mutex_unlock(&thread_lock);
+            break;
+        }
+
+        task = pop(&task_queue);
+        --task_count;
+        ++active_threads;
+        pthread_mutex_unlock(&thread_lock);
+
+        quick_sort_t(&task);
+
+        pthread_mutex_lock(&thread_lock);
+        --active_threads;
+        pthread_mutex_unlock(&thread_lock);        
+    }
 
 }
 
 int get_random_index(int low, int high)
 {
-    int seed = time(NULL);
-
-    return rand_r(&seed) % (high - low + 1) + low;
+    return rand() % (high - low + 1) + low;
 }
 
 int partition(int arr[], int low, int high)
@@ -110,81 +145,46 @@ int partition(int arr[], int low, int high)
     return i + 1;
 }
 
-// void quick_sort(int arr[], int low, int high)
-// {
 
-//     if (low < high)
-//     {
-//         int part_index = partition(arr, low, high); 
-
-//         quick_sort(arr, low, part_index - 1);
-//         quick_sort(arr, part_index + 1, high);
-//     } 
-
-// }
-
-void quick_sort_t(void * params)
+void quick_sort_t(void* params)
 {
-    struct ThreadParams* t_params = (struct ThreadParams *) params;
+    SortTask_t* task_params = (SortTask_t *) params;
 
-    int* arr = t_params->arr;
-    int low = t_params->low;
-    int high = t_params->high;
-
-    pthread_mutex_lock(&thread_lock);
-    ++active;
-    pthread_mutex_unlock(&thread_lock);
-
-// един thread pool и едно лимитиране на броя създадени thread-ове би трябвало драматично да намали execution time-a!!
+    int* arr = task_params->arr;
+    int low = task_params->low;
+    int high = task_params->high;
 
     if (low < high)
     {
-        if (active < MAX_THREADS)
-        {
-            int part_index = partition(arr, low, high); 
+        int part_index = partition(arr, low, high); 
 
-            struct ThreadParams* t_params_left = malloc(sizeof(struct ThreadParams));
-            struct ThreadParams* t_params_right = malloc(sizeof(struct ThreadParams));
+        SortTask_t task_params_left = {arr, low, part_index - 1};
+        SortTask_t task_params_right = {arr, part_index + 1, high};
 
-            t_params_left->arr = arr;
-            t_params_left->low = low;
-            t_params_left->high = part_index - 1;
-
-            t_params_right->arr = arr;
-            t_params_right->low = part_index + 1;
-            t_params_right->high = high;
-
-            pthread_t t_left, t_right;
-
-            pthread_create(&t_left, NULL, quick_sort_t, t_params_left);
-            pthread_create(&t_right, NULL, quick_sort_t, t_params_right);
-
-            pthread_join(t_left, NULL);
-            pthread_join(t_right, NULL);
-
-            free(t_params_left);
-            free(t_params_right);
-
-            pthread_mutex_lock(&thread_lock);
-            --active;
-            pthread_mutex_unlock(&thread_lock);
-        }
-        else 
-        {
-            int part_index = partition(arr, low, high); 
-            quick_sort(arr, low, part_index - 1);
-            quick_sort(arr, part_index + 1, high);
-        }
-        
-    } 
+        create_sort_task(task_params_left);
+        create_sort_task(task_params_right);
+    }
 
 }
 
 void quick_sort(int arr[], int low, int high)
 {
-    struct ThreadParams params = {arr, low, high};
+    SortTask_t params = {arr, low, high};
 
     quick_sort_t(&params);
+}
+
+// Single-threaded quicksort
+void quick_sort_s(int arr[], int low, int high)
+{
+
+    if (low < high)
+    {
+        int part_index = partition(arr, low, high);
+
+        quick_sort_s(arr, low, part_index - 1);
+        quick_sort_s(arr, part_index + 1, high);
+    }
 }
 
 void print_arr(int arr[], unsigned long size)

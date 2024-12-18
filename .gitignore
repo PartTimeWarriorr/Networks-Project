@@ -1,3 +1,5 @@
-a
-b
+fun.o
+client.out
+*.o
+*.exe
 *.out
