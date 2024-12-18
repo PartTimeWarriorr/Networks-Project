@@ -34,13 +34,11 @@ void perform_alg(int thread_count, int num_count, int* arr, char* buffer)
 
     quick_sort(arr, 0, num_count - 1);
 
-    // Main thread constantly checks if there are any active threads or tasks
+    // Main thread checks if there are any active threads or tasks
     pthread_mutex_lock(&thread_lock);
     while(task_count > 0 || active_threads > 0)
     {
-        // ?
-        pthread_mutex_unlock(&thread_lock);
-        pthread_mutex_lock(&thread_lock);
+        pthread_cond_wait(&cond_var, &thread_lock);
     }
     done = 1;
     pthread_cond_broadcast(&cond_var);
@@ -113,6 +111,8 @@ void* run_thread()
 
         pthread_mutex_lock(&thread_lock);
         --active_threads;
+        // Signal for main thread to check if the sorting is done
+        pthread_cond_broadcast(&cond_var);
         pthread_mutex_unlock(&thread_lock);        
     }
 
