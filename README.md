@@ -1,4 +1,5 @@
 # Multi-threaded quicksort project (using pthread)
+Проект за курса по Мрежово програмиране 2024/2025
 
 ## How to Build 
 ### On Ubuntu
